@@ -20,11 +20,9 @@ package main
 
 import (
 	"context"
-	"io/ioutil"
 	"net"
 	"net/url"
 	"os"
-	"path"
 	"path/filepath"
 	"time"
 
@@ -69,7 +67,7 @@ import (
 // Config holds configuration parameters from environment variables
 type Config struct {
 	Name             string            `default:"icmp-server" desc:"Name of ICMP Server"`
-	BaseDir          string            `default:"./" desc:"base directory" split_words:"true"`
+	ListenOn         string            `default:"listen.on.sock" desc:"listen on socket" split_words:"true"`
 	ConnectTo        url.URL           `default:"unix:///var/lib/networkservicemesh/nsm.io.sock" desc:"url to connect to" split_words:"true"`
 	MaxTokenLifetime time.Duration     `default:"24h" desc:"maximum lifetime of tokens" split_words:"true"`
 	ServiceName      string            `default:"icmp-responder" desc:"Name of providing service" split_words:"true"`
@@ -161,11 +159,6 @@ func main() {
 	// ********************************************************************************
 	logger.Log(ctx).Infof("executing phase 4: create icmp-server network service endpoint")
 	// ********************************************************************************
-	tmpDir, err := ioutil.TempDir("", path.Join(filepath.Clean(config.BaseDir), config.Name))
-	if err != nil {
-		logrus.Fatalf("error creating tmpDir %+v", err)
-	}
-	var lastSocketID = new(uint32)
 	vppConn, vppErrCh := vpphelper.StartAndDialContext(ctx)
 	exitOnErr(ctx, cancel, vppErrCh)
 
@@ -178,7 +171,7 @@ func main() {
 		mechanisms.NewServer(map[string]networkservice.NetworkServiceServer{
 			memif.MECHANISM: chain.NewNetworkServiceServer(
 				metadata.NewServer(),
-				memif.NewServer(vppConn, tmpDir, lastSocketID),
+				memif.NewServer(vppConn),
 				tag.NewServer(ctx, vppConn),
 				connectioncontext.NewServer(vppConn),
 				up.NewServer(ctx, vppConn),
@@ -203,8 +196,7 @@ func main() {
 	server := grpc.NewServer(options...)
 	responderEndpoint.Register(server)
 
-	defer func(tmpDir string) { _ = os.Remove(tmpDir) }(tmpDir)
-	listenOn := &(url.URL{Scheme: "unix", Path: filepath.Join(tmpDir, "listen.on")})
+	listenOn := &(url.URL{Scheme: "unix", Path: filepath.Clean(config.ListenOn)})
 	srvErrCh := grpcutils.ListenAndServe(ctx, listenOn, server)
 	exitOnErr(ctx, cancel, srvErrCh)
 	logger.Log(ctx).Infof("grpc server started")
