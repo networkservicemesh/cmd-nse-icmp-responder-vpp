@@ -20,6 +20,7 @@ package main
 
 import (
 	"context"
+	"io/ioutil"
 	"net"
 	"net/url"
 	"os"
@@ -195,7 +196,13 @@ func main() {
 	server := grpc.NewServer(options...)
 	responderEndpoint.Register(server)
 
-	listenOn := &(url.URL{Scheme: "unix", Path: filepath.Clean(config.ListenOn)})
+	tmpDir, err := ioutil.TempDir("", config.Name)
+	if err != nil {
+		logrus.Fatalf("error creating tmpDir %+v", err)
+	}
+	defer func(tmpDir string) { _ = os.Remove(tmpDir) }(tmpDir)
+	listenOn := &(url.URL{Scheme: "unix", Path: filepath.Join(tmpDir, config.ListenOn)})
+
 	srvErrCh := grpcutils.ListenAndServe(ctx, listenOn, server)
 	exitOnErr(ctx, cancel, srvErrCh)
 	log.FromContext(ctx).Infof("grpc server started")
