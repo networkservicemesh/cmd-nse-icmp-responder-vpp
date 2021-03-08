@@ -28,4 +28,4 @@ CMD dlv -l :40000 --headless=true --api-version=2 test -test.v ./...
 
 FROM ghcr.io/edwarnicke/govpp/vpp:${VPP_VERSION} as runtime
 COPY --from=build /bin/cmd-nse-icmp-responder-vpp /bin/cmd-nse-icmp-responder-vpp
-CMD /bin/cmd-nse-icmp-responder-vpp
+ENTRYPOINT [ "/bin/cmd-nse-icmp-responder-vpp" ] 
