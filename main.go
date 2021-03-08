@@ -266,7 +266,6 @@ func main() {
 
 	// wait for server to exit
 	<-ctx.Done()
-	<-vppErrCh
 }
 
 func exitOnErr(ctx context.Context, cancel context.CancelFunc, errCh <-chan error) {
