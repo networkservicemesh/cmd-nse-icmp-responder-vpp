@@ -162,23 +162,23 @@ func main() {
 	vppConn, vppErrCh := vpphelper.StartAndDialContext(ctx)
 	exitOnErr(ctx, cancel, vppErrCh)
 
-	responderEndpoint := endpoint.NewServer(
-		ctx,
-		config.Name,
-		authorize.NewServer(),
+	responderEndpoint := endpoint.NewServer(ctx,
 		spiffejwt.TokenGeneratorFunc(source, config.MaxTokenLifetime),
-		point2pointipam.NewServer(ipnet),
-		mechanisms.NewServer(map[string]networkservice.NetworkServiceServer{
-			memif.MECHANISM: chain.NewNetworkServiceServer(
-				metadata.NewServer(),
-				memif.NewServer(vppConn),
-				tag.NewServer(ctx, vppConn),
-				connectioncontext.NewServer(vppConn),
-				up.NewServer(ctx, vppConn),
-				sendfd.NewServer(),
-			),
-		}),
-		sendfd.NewServer(),
+		endpoint.WithName(config.Name),
+		endpoint.WithAuthorizeServer(authorize.NewServer()),
+		endpoint.WithAdditionalFunctionality(
+			point2pointipam.NewServer(ipnet),
+			mechanisms.NewServer(map[string]networkservice.NetworkServiceServer{
+				memif.MECHANISM: chain.NewNetworkServiceServer(
+					metadata.NewServer(),
+					memif.NewServer(vppConn),
+					tag.NewServer(ctx, vppConn),
+					connectioncontext.NewServer(vppConn),
+					up.NewServer(ctx, vppConn),
+					sendfd.NewServer(),
+				),
+			}),
+			sendfd.NewServer()),
 	)
 	// ********************************************************************************
 	log.FromContext(ctx).Infof("executing phase 5: create grpc server and register icmp-server")
