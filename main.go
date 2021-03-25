@@ -39,7 +39,6 @@ import (
 	"google.golang.org/grpc/credentials"
 
 	"github.com/networkservicemesh/api/pkg/api/networkservice"
-	"github.com/networkservicemesh/api/pkg/api/networkservice/payload"
 	registryapi "github.com/networkservicemesh/api/pkg/api/registry"
 	"github.com/networkservicemesh/sdk-vpp/pkg/networkservice/connectioncontext"
 	"github.com/networkservicemesh/sdk-vpp/pkg/networkservice/mechanisms/memif"
@@ -72,6 +71,7 @@ type Config struct {
 	ConnectTo        url.URL           `default:"unix:///var/lib/networkservicemesh/nsm.io.sock" desc:"url to connect to" split_words:"true"`
 	MaxTokenLifetime time.Duration     `default:"24h" desc:"maximum lifetime of tokens" split_words:"true"`
 	ServiceName      string            `default:"icmp-responder" desc:"Name of providing service" split_words:"true"`
+	Payload          string            `default:"ETHERNET" desc:"Name of provided service payload" split_words:"true"`
 	Labels           map[string]string `default:"" desc:"Endpoint labels"`
 	CidrPrefix       string            `default:"169.254.0.0/16" desc:"CIDR Prefix to assign IPs from" split_words:"true"`
 }
@@ -232,7 +232,7 @@ func main() {
 
 	_, err = registryapi.NewNetworkServiceRegistryClient(cc).Register(context.Background(), &registryapi.NetworkService{
 		Name:    config.ServiceName,
-		Payload: payload.IP,
+		Payload: config.Payload,
 	})
 
 	if err != nil {
