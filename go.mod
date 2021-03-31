@@ -7,9 +7,9 @@ require (
 	github.com/edwarnicke/grpcfd v0.0.0-20210219150442-10fb469a6976
 	github.com/edwarnicke/vpphelper v0.0.0-20210225052320-b4f1f1aff45d
 	github.com/kelseyhightower/envconfig v1.4.0
-	github.com/networkservicemesh/api v0.0.0-20210323151719-3156ce7533e9
-	github.com/networkservicemesh/sdk v0.0.0-20210331094157-964332cc797d
-	github.com/networkservicemesh/sdk-vpp v0.0.0-20210331094645-6c01fd760b64
+	github.com/networkservicemesh/api v0.0.0-20210331143834-12761e9f673f
+	github.com/networkservicemesh/sdk v0.0.0-20210331144417-68a6beb66557
+	github.com/networkservicemesh/sdk-vpp v0.0.0-20210331145930-3132b7815901
 	github.com/onsi/ginkgo v1.13.0 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.7.0
