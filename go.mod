@@ -8,8 +8,8 @@ require (
 	github.com/edwarnicke/vpphelper v0.0.0-20210225052320-b4f1f1aff45d
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/networkservicemesh/api v0.0.0-20210323151719-3156ce7533e9
-	github.com/networkservicemesh/sdk v0.0.0-20210331063945-2e26c2a721a2
-	github.com/networkservicemesh/sdk-vpp v0.0.0-20210331064301-b5e0fed46c11
+	github.com/networkservicemesh/sdk v0.0.0-20210331094157-964332cc797d
+	github.com/networkservicemesh/sdk-vpp v0.0.0-20210331094645-6c01fd760b64
 	github.com/onsi/ginkgo v1.13.0 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.7.0
