@@ -50,7 +50,6 @@ import (
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/mechanisms/sendfd"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/core/chain"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/ipam/point2pointipam"
-	"github.com/networkservicemesh/sdk/pkg/networkservice/utils/metadata"
 	registryrefresh "github.com/networkservicemesh/sdk/pkg/registry/common/refresh"
 	registrysendfd "github.com/networkservicemesh/sdk/pkg/registry/common/sendfd"
 	registrychain "github.com/networkservicemesh/sdk/pkg/registry/core/chain"
@@ -170,15 +169,14 @@ func main() {
 			point2pointipam.NewServer(ipnet),
 			mechanisms.NewServer(map[string]networkservice.NetworkServiceServer{
 				memif.MECHANISM: chain.NewNetworkServiceServer(
-					metadata.NewServer(),
-					memif.NewServer(vppConn),
-					tag.NewServer(ctx, vppConn),
-					connectioncontext.NewServer(vppConn),
-					up.NewServer(ctx, vppConn),
 					sendfd.NewServer(),
+					up.NewServer(ctx, vppConn),
+					connectioncontext.NewServer(vppConn),
+					tag.NewServer(ctx, vppConn),
+					memif.NewServer(vppConn),
 				),
 			}),
-			sendfd.NewServer()),
+		),
 	)
 	// ********************************************************************************
 	log.FromContext(ctx).Infof("executing phase 5: create grpc server and register icmp-server")
