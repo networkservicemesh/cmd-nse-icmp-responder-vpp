@@ -91,16 +91,8 @@ func main() {
 	// ********************************************************************************
 	// setup context to catch signals
 	// ********************************************************************************
-	ctx, cancel := signal.NotifyContext(
-		context.Background(),
-		os.Interrupt,
-		// More Linux signals here
-		syscall.SIGHUP,
-		syscall.SIGTERM,
-		syscall.SIGQUIT,
-	)
+	ctx, cancel := notifyContext();
 	defer cancel()
-
 	// ********************************************************************************
 	// setup logging
 	// ********************************************************************************
@@ -288,4 +280,15 @@ func exitOnErr(ctx context.Context, cancel context.CancelFunc, errCh <-chan erro
 		log.FromContext(ctx).Error(err)
 		cancel()
 	}(ctx, errCh)
+}
+
+func notifyContext() (context.Context, context.CancelFunc){
+	return signal.NotifyContext(
+		context.Background(),
+		os.Interrupt,
+		// More Linux signals here
+		syscall.SIGHUP,
+		syscall.SIGTERM,
+		syscall.SIGQUIT,
+	)
 }
