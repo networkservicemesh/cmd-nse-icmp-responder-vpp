@@ -282,7 +282,7 @@ func exitOnErr(ctx context.Context, cancel context.CancelFunc, errCh <-chan erro
 	}(ctx, errCh)
 }
 
-func notifyContext() (context.Context, context.CancelFunc){
+func notifyContext() (context.Context, context.CancelFunc) {
 	return signal.NotifyContext(
 		context.Background(),
 		os.Interrupt,
