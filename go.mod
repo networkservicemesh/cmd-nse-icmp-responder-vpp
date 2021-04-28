@@ -8,8 +8,8 @@ require (
 	github.com/edwarnicke/vpphelper v0.0.0-20210225052320-b4f1f1aff45d
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/networkservicemesh/api v0.0.0-20210417193417-dd329f8d6b7a
-	github.com/networkservicemesh/sdk v0.0.0-20210428094220-c73cc3b535c7
-	github.com/networkservicemesh/sdk-vpp v0.0.0-20210428095344-94405d75b0fd
+	github.com/networkservicemesh/sdk v0.0.0-20210428123532-ef04aec9a3cd
+	github.com/networkservicemesh/sdk-vpp v0.0.0-20210428124009-20faa6662a04
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spiffe/go-spiffe/v2 v2.0.0-beta.5
