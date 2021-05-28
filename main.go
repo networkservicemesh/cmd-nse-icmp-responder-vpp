@@ -52,9 +52,7 @@ import (
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/mechanisms/sendfd"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/core/chain"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/ipam/point2pointipam"
-	registryrefresh "github.com/networkservicemesh/sdk/pkg/registry/common/refresh"
-	registrysendfd "github.com/networkservicemesh/sdk/pkg/registry/common/sendfd"
-	registrychain "github.com/networkservicemesh/sdk/pkg/registry/core/chain"
+	registryclient "github.com/networkservicemesh/sdk/pkg/registry/chains/client"
 	"github.com/networkservicemesh/sdk/pkg/tools/debug"
 	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
 	"github.com/networkservicemesh/sdk/pkg/tools/jaeger"
@@ -220,15 +218,9 @@ func main() {
 			),
 		),
 	)
-	cc, err := grpc.DialContext(ctx,
-		grpcutils.URLToTarget(&config.ConnectTo),
-		clientOptions...,
-	)
-	if err != nil {
-		log.FromContext(ctx).Fatalf("error establishing grpc connection to registry server %+v", err)
-	}
 
-	_, err = registryapi.NewNetworkServiceRegistryClient(cc).Register(context.Background(), &registryapi.NetworkService{
+	nsRegistryClient := registryclient.NewNetworkServiceRegistryClient(ctx, &config.ConnectTo, registryclient.WithDialOptions(clientOptions...))
+	_, err = nsRegistryClient.Register(ctx, &registryapi.NetworkService{
 		Name:    config.ServiceName,
 		Payload: config.Payload,
 	})
@@ -237,12 +229,8 @@ func main() {
 		log.FromContext(ctx).Fatalf("unable to register ns %+v", err)
 	}
 
-	registryClient := registrychain.NewNetworkServiceEndpointRegistryClient(
-		registryrefresh.NewNetworkServiceEndpointRegistryClient(),
-		registrysendfd.NewNetworkServiceEndpointRegistryClient(),
-		registryapi.NewNetworkServiceEndpointRegistryClient(cc),
-	)
-	nse, err := registryClient.Register(context.Background(), &registryapi.NetworkServiceEndpoint{
+	nseRegistryClient := registryclient.NewNetworkServiceEndpointRegistryClient(ctx, &config.ConnectTo, registryclient.WithDialOptions(clientOptions...))
+	nse, err := nseRegistryClient.Register(ctx, &registryapi.NetworkServiceEndpoint{
 		Name:                config.Name,
 		NetworkServiceNames: []string{config.ServiceName},
 		NetworkServiceLabels: map[string]*registryapi.NetworkServiceLabels{
