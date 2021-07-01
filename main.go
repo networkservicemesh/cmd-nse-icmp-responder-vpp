@@ -72,6 +72,7 @@ type Config struct {
 	Payload          string            `default:"ETHERNET" desc:"Name of provided service payload" split_words:"true"`
 	Labels           map[string]string `default:"" desc:"Endpoint labels"`
 	CidrPrefix       string            `default:"169.254.0.0/16" desc:"CIDR Prefix to assign IPs from" split_words:"true"`
+	RegisterService  bool              `default:"true" desc:"register network service flag" split_words:"true"`
 }
 
 // Process prints and processes env to config
@@ -219,14 +220,16 @@ func main() {
 		),
 	)
 
-	nsRegistryClient := registryclient.NewNetworkServiceRegistryClient(ctx, &config.ConnectTo, registryclient.WithDialOptions(clientOptions...))
-	_, err = nsRegistryClient.Register(ctx, &registryapi.NetworkService{
-		Name:    config.ServiceName,
-		Payload: config.Payload,
-	})
+	if config.RegisterService {
+		nsRegistryClient := registryclient.NewNetworkServiceRegistryClient(ctx, &config.ConnectTo, registryclient.WithDialOptions(clientOptions...))
+		_, err = nsRegistryClient.Register(ctx, &registryapi.NetworkService{
+			Name:    config.ServiceName,
+			Payload: config.Payload,
+		})
 
-	if err != nil {
-		log.FromContext(ctx).Fatalf("unable to register ns %+v", err)
+		if err != nil {
+			log.FromContext(ctx).Fatalf("unable to register ns %+v", err)
+		}
 	}
 
 	nseRegistryClient := registryclient.NewNetworkServiceEndpointRegistryClient(ctx, &config.ConnectTo, registryclient.WithDialOptions(clientOptions...))
