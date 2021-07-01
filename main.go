@@ -72,7 +72,7 @@ type Config struct {
 	Payload          string            `default:"ETHERNET" desc:"Name of provided service payload" split_words:"true"`
 	Labels           map[string]string `default:"" desc:"Endpoint labels"`
 	CidrPrefix       string            `default:"169.254.0.0/16" desc:"CIDR Prefix to assign IPs from" split_words:"true"`
-	RegisterService  bool              `default:"true" desc:"register network service flag" split_words:"true"`
+	RegisterService  bool              `default:"true" desc:"if true then registers network service on startup" split_words:"true"`
 }
 
 // Process prints and processes env to config
