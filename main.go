@@ -73,6 +73,7 @@ type Config struct {
 	Labels           map[string]string `default:"" desc:"Endpoint labels"`
 	CidrPrefix       string            `default:"169.254.0.0/16" desc:"CIDR Prefix to assign IPs from" split_words:"true"`
 	RegisterService  bool              `default:"true" desc:"if true then registers network service on startup" split_words:"true"`
+	LogLevel         string            `default:"INFO" desc:"Log level" split_words:"true"`
 }
 
 // Process prints and processes env to config
@@ -84,6 +85,14 @@ func (c *Config) Process() error {
 		return errors.Wrap(err, "cannot process envconfig nse")
 	}
 	return nil
+}
+
+func setLogLevel(level string) {
+	l, err := logrus.ParseLevel(level)
+	if err != nil {
+		logrus.Fatalf("invalid log level %s", level)
+	}
+	logrus.SetLevel(l)
 }
 
 func main() {
@@ -130,6 +139,7 @@ func main() {
 	if err := config.Process(); err != nil {
 		logrus.Fatal(err.Error())
 	}
+	setLogLevel(config.LogLevel)
 
 	log.FromContext(ctx).Infof("Config: %#v", config)
 
