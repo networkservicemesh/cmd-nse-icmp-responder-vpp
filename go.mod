@@ -8,10 +8,15 @@ require (
 	github.com/edwarnicke/vpphelper v0.0.0-20210225052320-b4f1f1aff45d
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/networkservicemesh/api v1.0.1-0.20210907194827-9a36433d7d6e
-	github.com/networkservicemesh/sdk v0.5.1-0.20211026195308-ace8d38c65db
+	github.com/networkservicemesh/sdk v0.5.1-0.20211102193303-a94a249e2f5f
 	github.com/networkservicemesh/sdk-vpp v0.0.0-20211026195813-25124065cdb4
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spiffe/go-spiffe/v2 v2.0.0-beta.5
 	google.golang.org/grpc v1.37.0
+)
+
+replace (
+	github.com/networkservicemesh/api => github.com/Bolodya1997/api v0.0.0-20211103052554-ef6f03fec39e
+	github.com/networkservicemesh/sdk-vpp => github.com/Bolodya1997/sdk-vpp v0.0.0-20211103055450-1b016e8dd77e
 )
