@@ -1,4 +1,4 @@
-// Copyright (c) 2021 Doc.ai and/or its affiliates.
+// Copyright (c) 2021-2022 Doc.ai and/or its affiliates.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -14,6 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build linux
 // +build linux
 
 package main
@@ -55,25 +56,26 @@ import (
 	registryclient "github.com/networkservicemesh/sdk/pkg/registry/chains/client"
 	"github.com/networkservicemesh/sdk/pkg/tools/debug"
 	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
-	"github.com/networkservicemesh/sdk/pkg/tools/jaeger"
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
 	"github.com/networkservicemesh/sdk/pkg/tools/log/logruslogger"
-	"github.com/networkservicemesh/sdk/pkg/tools/opentracing"
+	"github.com/networkservicemesh/sdk/pkg/tools/opentelemetry"
 	"github.com/networkservicemesh/sdk/pkg/tools/spiffejwt"
+	"github.com/networkservicemesh/sdk/pkg/tools/tracing"
 )
 
 // Config holds configuration parameters from environment variables
 type Config struct {
-	Name             string            `default:"icmp-server" desc:"Name of ICMP Server"`
-	ListenOn         string            `default:"listen.on.sock" desc:"listen on socket" split_words:"true"`
-	ConnectTo        url.URL           `default:"unix:///var/lib/networkservicemesh/nsm.io.sock" desc:"url to connect to" split_words:"true"`
-	MaxTokenLifetime time.Duration     `default:"10m" desc:"maximum lifetime of tokens" split_words:"true"`
-	ServiceNames     []string          `default:"icmp-responder" desc:"Name of providing service" split_words:"true"`
-	Payload          string            `default:"ETHERNET" desc:"Name of provided service payload" split_words:"true"`
-	Labels           map[string]string `default:"" desc:"Endpoint labels"`
-	CidrPrefix       string            `default:"169.254.0.0/16" desc:"CIDR Prefix to assign IPs from" split_words:"true"`
-	RegisterService  bool              `default:"true" desc:"if true then registers network service on startup" split_words:"true"`
-	LogLevel         string            `default:"INFO" desc:"Log level" split_words:"true"`
+	Name                  string            `default:"icmp-server" desc:"Name of ICMP Server"`
+	ListenOn              string            `default:"listen.on.sock" desc:"listen on socket" split_words:"true"`
+	ConnectTo             url.URL           `default:"unix:///var/lib/networkservicemesh/nsm.io.sock" desc:"url to connect to" split_words:"true"`
+	MaxTokenLifetime      time.Duration     `default:"10m" desc:"maximum lifetime of tokens" split_words:"true"`
+	ServiceNames          []string          `default:"icmp-responder" desc:"Name of providing service" split_words:"true"`
+	Payload               string            `default:"ETHERNET" desc:"Name of provided service payload" split_words:"true"`
+	Labels                map[string]string `default:"" desc:"Endpoint labels"`
+	CidrPrefix            string            `default:"169.254.0.0/16" desc:"CIDR Prefix to assign IPs from" split_words:"true"`
+	RegisterService       bool              `default:"true" desc:"if true then registers network service on startup" split_words:"true"`
+	LogLevel              string            `default:"INFO" desc:"Log level" split_words:"true"`
+	OpenTelemetryEndpoint string            `default:"otel-collector.observability.svc.cluster.local:4317" desc:"OpenTelemetry Collector Endpoint"`
 }
 
 // Process prints and processes env to config
@@ -96,19 +98,13 @@ func main() {
 	// ********************************************************************************
 	// setup logging
 	// ********************************************************************************
+	log.EnableTracing(true)
 	logrus.SetFormatter(&nested.Formatter{})
 	ctx = log.WithLog(ctx, logruslogger.New(ctx, map[string]interface{}{"cmd": os.Args[0]}))
 
 	if err := debug.Self(); err != nil {
 		log.FromContext(ctx).Infof("%s", err)
 	}
-
-	// ********************************************************************************
-	// Configure open tracing
-	// ********************************************************************************
-	log.EnableTracing(true)
-	jaegerCloser := jaeger.InitJaeger(ctx, "cmd-nse-icmp-responder")
-	defer func() { _ = jaegerCloser.Close() }()
 
 	// enumerating phases
 	log.FromContext(ctx).Infof("there are 6 phases which will be executed followed by a success message:")
@@ -138,6 +134,21 @@ func main() {
 	logrus.SetLevel(l)
 
 	log.FromContext(ctx).Infof("Config: %#v", config)
+
+	// ********************************************************************************
+	// Configure Open Telemetry
+	// ********************************************************************************
+	if opentelemetry.IsEnabled() {
+		collectorAddress := config.OpenTelemetryEndpoint
+		spanExporter := opentelemetry.InitSpanExporter(ctx, collectorAddress)
+		metricExporter := opentelemetry.InitMetricExporter(ctx, collectorAddress)
+		o := opentelemetry.Init(ctx, spanExporter, metricExporter, config.Name)
+		defer func() {
+			if err = o.Close(); err != nil {
+				log.FromContext(ctx).Error(err.Error())
+			}
+		}()
+	}
 
 	// ********************************************************************************
 	log.FromContext(ctx).Infof("executing phase 2: retrieving svid, check spire agent logs if this is the last line you see")
@@ -187,7 +198,7 @@ func main() {
 	log.FromContext(ctx).Infof("executing phase 5: create grpc server and register icmp-server")
 	// ********************************************************************************
 	options := append(
-		opentracing.WithTracing(),
+		tracing.WithTracing(),
 		grpc.Creds(
 			grpcfd.TransportCredentials(
 				credentials.NewTLS(
@@ -214,7 +225,7 @@ func main() {
 	log.FromContext(ctx).Infof("executing phase 6: register nse with nsm")
 	// ********************************************************************************
 	clientOptions := append(
-		opentracing.WithTracingDial(),
+		tracing.WithTracingDial(),
 		grpc.WithBlock(),
 		grpc.WithDefaultCallOptions(grpc.WaitForReady(true)),
 		grpc.WithTransportCredentials(
