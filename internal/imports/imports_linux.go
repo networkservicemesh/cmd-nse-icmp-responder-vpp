@@ -20,6 +20,7 @@ import (
 	_ "github.com/networkservicemesh/sdk/pkg/networkservice/core/chain"
 	_ "github.com/networkservicemesh/sdk/pkg/networkservice/ipam/point2pointipam"
 	_ "github.com/networkservicemesh/sdk/pkg/registry/chains/client"
+	_ "github.com/networkservicemesh/sdk/pkg/registry/common/sendfd"
 	_ "github.com/networkservicemesh/sdk/pkg/tools/debug"
 	_ "github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
 	_ "github.com/networkservicemesh/sdk/pkg/tools/log"
