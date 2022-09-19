@@ -57,6 +57,7 @@ import (
 	registryclient "github.com/networkservicemesh/sdk/pkg/registry/chains/client"
 	"github.com/networkservicemesh/sdk/pkg/registry/common/clientinfo"
 	registrysendfd "github.com/networkservicemesh/sdk/pkg/registry/common/sendfd"
+	"github.com/networkservicemesh/sdk/pkg/tools/cidr"
 	"github.com/networkservicemesh/sdk/pkg/tools/debug"
 	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
@@ -75,7 +76,7 @@ type Config struct {
 	ServiceNames          []string          `default:"icmp-responder" desc:"Name of providing service" split_words:"true"`
 	Payload               string            `default:"ETHERNET" desc:"Name of provided service payload" split_words:"true"`
 	Labels                map[string]string `default:"" desc:"Endpoint labels"`
-	CidrPrefix            string            `default:"169.254.0.0/16" desc:"CIDR Prefix to assign IPs from" split_words:"true"`
+	CidrPrefix            cidr.Groups       `default:"169.254.0.0/16" desc:"CIDR Prefix to assign IPs from" split_words:"true"`
 	RegisterService       bool              `default:"true" desc:"if true then registers network service on startup" split_words:"true"`
 	LogLevel              string            `default:"INFO" desc:"Log level" split_words:"true"`
 	OpenTelemetryEndpoint string            `default:"otel-collector.observability.svc.cluster.local:4317" desc:"OpenTelemetry Collector Endpoint"`
@@ -174,10 +175,10 @@ func main() {
 	// ********************************************************************************
 	log.FromContext(ctx).Infof("executing phase 3: creating icmp server ipam")
 	// ********************************************************************************
-	_, ipnet, err := net.ParseCIDR(config.CidrPrefix)
-	if err != nil {
-		log.FromContext(ctx).Fatalf("error parsing cidr: %+v", err)
-	}
+
+	ipamChain := getIPAMChain(config.CidrPrefix)
+
+	log.FromContext(ctx).Infof("network prefixes parsed successfully")
 
 	// ********************************************************************************
 	log.FromContext(ctx).Infof("executing phase 4: create icmp-server network service endpoint")
@@ -190,7 +191,7 @@ func main() {
 		endpoint.WithName(config.Name),
 		endpoint.WithAuthorizeServer(authorize.NewServer()),
 		endpoint.WithAdditionalFunctionality(
-			point2pointipam.NewServer(ipnet),
+			ipamChain,
 			mechanisms.NewServer(map[string]networkservice.NetworkServiceServer{
 				memif.MECHANISM: chain.NewNetworkServiceServer(
 					sendfd.NewServer(),
@@ -319,4 +320,12 @@ func notifyContext() (context.Context, context.CancelFunc) {
 		syscall.SIGTERM,
 		syscall.SIGQUIT,
 	)
+}
+
+func getIPAMChain(cIDRGroups [][]*net.IPNet) networkservice.NetworkServiceServer {
+	var ipamchain []networkservice.NetworkServiceServer
+	for _, cidrGroup := range cIDRGroups {
+		ipamchain = append(ipamchain, point2pointipam.NewServer(cidrGroup...))
+	}
+	return chain.NewNetworkServiceServer(ipamchain...)
 }
