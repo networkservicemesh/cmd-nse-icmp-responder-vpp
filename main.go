@@ -55,6 +55,7 @@ import (
 	"github.com/networkservicemesh/sdk/pkg/networkservice/core/chain"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/ipam/point2pointipam"
 	registryclient "github.com/networkservicemesh/sdk/pkg/registry/chains/client"
+	registryauthorize "github.com/networkservicemesh/sdk/pkg/registry/common/authorize"
 	"github.com/networkservicemesh/sdk/pkg/registry/common/clientinfo"
 	registrysendfd "github.com/networkservicemesh/sdk/pkg/registry/common/sendfd"
 	"github.com/networkservicemesh/sdk/pkg/tools/cidr"
@@ -64,6 +65,7 @@ import (
 	"github.com/networkservicemesh/sdk/pkg/tools/log/logruslogger"
 	"github.com/networkservicemesh/sdk/pkg/tools/opentelemetry"
 	"github.com/networkservicemesh/sdk/pkg/tools/spiffejwt"
+	"github.com/networkservicemesh/sdk/pkg/tools/token"
 	"github.com/networkservicemesh/sdk/pkg/tools/tracing"
 )
 
@@ -210,9 +212,7 @@ func main() {
 		tracing.WithTracing(),
 		grpc.Creds(
 			grpcfd.TransportCredentials(
-				credentials.NewTLS(
-					tlsServerConfig,
-				),
+				credentials.NewTLS(tlsServerConfig),
 			),
 		),
 	)
@@ -236,21 +236,21 @@ func main() {
 	clientOptions := append(
 		tracing.WithTracingDial(),
 		grpc.WithBlock(),
-		grpc.WithDefaultCallOptions(grpc.WaitForReady(true)),
+		grpc.WithDefaultCallOptions(
+			grpc.WaitForReady(true),
+			grpc.PerRPCCredentials(token.NewPerRPCCredentials(spiffejwt.TokenGeneratorFunc(source, config.MaxTokenLifetime)))),
 		grpc.WithTransportCredentials(
-			grpcfd.TransportCredentials(
-				credentials.NewTLS(
-					tlsClientConfig,
-				),
-			),
-		),
+			grpcfd.TransportCredentials(credentials.NewTLS(tlsClientConfig))),
+		grpcfd.WithChainStreamInterceptor(),
+		grpcfd.WithChainUnaryInterceptor(),
 	)
 
 	if config.RegisterService {
 		for _, serviceName := range config.ServiceNames {
 			nsRegistryClient := registryclient.NewNetworkServiceRegistryClient(ctx,
 				registryclient.WithClientURL(&config.ConnectTo),
-				registryclient.WithDialOptions(clientOptions...))
+				registryclient.WithDialOptions(clientOptions...),
+				registryclient.WithAuthorizeNSERegistryClient(registryauthorize.NewNetworkServiceEndpointRegistryClient()))
 			_, err = nsRegistryClient.Register(ctx, &registryapi.NetworkService{
 				Name:    serviceName,
 				Payload: config.Payload,
@@ -270,6 +270,7 @@ func main() {
 			clientinfo.NewNetworkServiceEndpointRegistryClient(),
 			registrysendfd.NewNetworkServiceEndpointRegistryClient(),
 		),
+		registryclient.WithAuthorizeNSRegistryClient(registryauthorize.NewNetworkServiceRegistryClient()),
 	)
 	nse := &registryapi.NetworkServiceEndpoint{
 		Name:                 config.Name,
