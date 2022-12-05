@@ -212,9 +212,7 @@ func main() {
 		tracing.WithTracing(),
 		grpc.Creds(
 			grpcfd.TransportCredentials(
-				credentials.NewTLS(
-					tlsServerConfig,
-				),
+				credentials.NewTLS(tlsServerConfig),
 			),
 		),
 	)
@@ -242,8 +240,7 @@ func main() {
 			grpc.WaitForReady(true),
 			grpc.PerRPCCredentials(token.NewPerRPCCredentials(spiffejwt.TokenGeneratorFunc(source, config.MaxTokenLifetime)))),
 		grpc.WithTransportCredentials(
-			grpcfd.TransportCredentials(
-				credentials.NewTLS(tlsClientConfig))),
+			grpcfd.TransportCredentials(credentials.NewTLS(tlsClientConfig))),
 		grpcfd.WithChainStreamInterceptor(),
 		grpcfd.WithChainUnaryInterceptor(),
 	)
