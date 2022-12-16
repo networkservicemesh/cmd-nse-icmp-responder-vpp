@@ -252,8 +252,7 @@ func main() {
 				registryclient.WithClientURL(&config.ConnectTo),
 				registryclient.WithDialOptions(clientOptions...),
 				registryclient.WithAuthorizeNSERegistryClient(registryauthorize.NewNetworkServiceEndpointRegistryClient(
-					registryauthorize.WithPolicies(config.RegistryClientPolicies...),
-				)))
+					registryauthorize.WithPolicies(config.RegistryClientPolicies...))))
 			_, err = nsRegistryClient.Register(ctx, &registryapi.NetworkService{
 				Name:    serviceName,
 				Payload: config.Payload,
@@ -271,11 +270,9 @@ func main() {
 		registryclient.WithDialOptions(clientOptions...),
 		registryclient.WithNSEAdditionalFunctionality(
 			clientinfo.NewNetworkServiceEndpointRegistryClient(),
-			registrysendfd.NewNetworkServiceEndpointRegistryClient(),
-		),
+			registrysendfd.NewNetworkServiceEndpointRegistryClient()),
 		registryclient.WithAuthorizeNSRegistryClient(registryauthorize.NewNetworkServiceRegistryClient(
-			registryauthorize.WithPolicies(config.RegistryClientPolicies...),
-		)),
+			registryauthorize.WithPolicies(config.RegistryClientPolicies...))),
 	)
 	nse := &registryapi.NetworkServiceEndpoint{
 		Name:                 config.Name,
