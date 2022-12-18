@@ -71,17 +71,18 @@ import (
 
 // Config holds configuration parameters from environment variables
 type Config struct {
-	Name                  string            `default:"icmp-server" desc:"Name of ICMP Server"`
-	ListenOn              string            `default:"listen.on.sock" desc:"listen on socket" split_words:"true"`
-	ConnectTo             url.URL           `default:"unix:///var/lib/networkservicemesh/nsm.io.sock" desc:"url to connect to" split_words:"true"`
-	MaxTokenLifetime      time.Duration     `default:"10m" desc:"maximum lifetime of tokens" split_words:"true"`
-	ServiceNames          []string          `default:"icmp-responder" desc:"Name of providing service" split_words:"true"`
-	Payload               string            `default:"ETHERNET" desc:"Name of provided service payload" split_words:"true"`
-	Labels                map[string]string `default:"" desc:"Endpoint labels"`
-	CidrPrefix            cidr.Groups       `default:"169.254.0.0/16" desc:"CIDR Prefix to assign IPs from" split_words:"true"`
-	RegisterService       bool              `default:"true" desc:"if true then registers network service on startup" split_words:"true"`
-	LogLevel              string            `default:"INFO" desc:"Log level" split_words:"true"`
-	OpenTelemetryEndpoint string            `default:"otel-collector.observability.svc.cluster.local:4317" desc:"OpenTelemetry Collector Endpoint"`
+	Name                   string            `default:"icmp-server" desc:"Name of ICMP Server"`
+	ListenOn               string            `default:"listen.on.sock" desc:"listen on socket" split_words:"true"`
+	ConnectTo              url.URL           `default:"unix:///var/lib/networkservicemesh/nsm.io.sock" desc:"url to connect to" split_words:"true"`
+	MaxTokenLifetime       time.Duration     `default:"10m" desc:"maximum lifetime of tokens" split_words:"true"`
+	RegistryClientPolicies []string          `default:"etc/nsm/opa/common/.*.rego,etc/nsm/opa/registry/.*.rego,etc/nsm/opa/client/.*.rego" desc:"paths to files and directories that contain registry client policies" split_words:"true"`
+	ServiceNames           []string          `default:"icmp-responder" desc:"Name of providing service" split_words:"true"`
+	Payload                string            `default:"ETHERNET" desc:"Name of provided service payload" split_words:"true"`
+	Labels                 map[string]string `default:"" desc:"Endpoint labels"`
+	CidrPrefix             cidr.Groups       `default:"169.254.0.0/16" desc:"CIDR Prefix to assign IPs from" split_words:"true"`
+	RegisterService        bool              `default:"true" desc:"if true then registers network service on startup" split_words:"true"`
+	LogLevel               string            `default:"INFO" desc:"Log level" split_words:"true"`
+	OpenTelemetryEndpoint  string            `default:"otel-collector.observability.svc.cluster.local:4317" desc:"OpenTelemetry Collector Endpoint"`
 }
 
 // Process prints and processes env to config
@@ -250,7 +251,8 @@ func main() {
 			nsRegistryClient := registryclient.NewNetworkServiceRegistryClient(ctx,
 				registryclient.WithClientURL(&config.ConnectTo),
 				registryclient.WithDialOptions(clientOptions...),
-				registryclient.WithAuthorizeNSERegistryClient(registryauthorize.NewNetworkServiceEndpointRegistryClient()))
+				registryclient.WithAuthorizeNSERegistryClient(registryauthorize.NewNetworkServiceEndpointRegistryClient(
+					registryauthorize.WithPolicies(config.RegistryClientPolicies...))))
 			_, err = nsRegistryClient.Register(ctx, &registryapi.NetworkService{
 				Name:    serviceName,
 				Payload: config.Payload,
@@ -268,9 +270,9 @@ func main() {
 		registryclient.WithDialOptions(clientOptions...),
 		registryclient.WithNSEAdditionalFunctionality(
 			clientinfo.NewNetworkServiceEndpointRegistryClient(),
-			registrysendfd.NewNetworkServiceEndpointRegistryClient(),
-		),
-		registryclient.WithAuthorizeNSRegistryClient(registryauthorize.NewNetworkServiceRegistryClient()),
+			registrysendfd.NewNetworkServiceEndpointRegistryClient()),
+		registryclient.WithAuthorizeNSRegistryClient(registryauthorize.NewNetworkServiceRegistryClient(
+			registryauthorize.WithPolicies(config.RegistryClientPolicies...))),
 	)
 	nse := &registryapi.NetworkServiceEndpoint{
 		Name:                 config.Name,
