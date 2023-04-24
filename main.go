@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2022 Doc.ai and/or its affiliates.
+// Copyright (c) 2021-2023 Doc.ai and/or its affiliates.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -23,7 +23,6 @@ import (
 	"context"
 	"crypto/tls"
 	"io/ioutil"
-	"net"
 	"net/url"
 	"os"
 	"os/signal"
@@ -53,7 +52,7 @@ import (
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/mechanisms"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/mechanisms/sendfd"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/core/chain"
-	"github.com/networkservicemesh/sdk/pkg/networkservice/ipam/point2pointipam"
+	"github.com/networkservicemesh/sdk/pkg/networkservice/ipam/groupipam"
 	registryclient "github.com/networkservicemesh/sdk/pkg/registry/chains/client"
 	registryauthorize "github.com/networkservicemesh/sdk/pkg/registry/common/authorize"
 	"github.com/networkservicemesh/sdk/pkg/registry/common/clientinfo"
@@ -118,10 +117,9 @@ func main() {
 	log.FromContext(ctx).Infof("the phases include:")
 	log.FromContext(ctx).Infof("1: get config from environment")
 	log.FromContext(ctx).Infof("2: retrieve spiffe svid")
-	log.FromContext(ctx).Infof("3: create icmp server ipam")
-	log.FromContext(ctx).Infof("4: create icmp server nse")
-	log.FromContext(ctx).Infof("5: create grpc and mount nse")
-	log.FromContext(ctx).Infof("6: register nse with nsm")
+	log.FromContext(ctx).Infof("3: create icmp server nse")
+	log.FromContext(ctx).Infof("4: create grpc and mount nse")
+	log.FromContext(ctx).Infof("5: register nse with nsm")
 	log.FromContext(ctx).Infof("a final success message with start time duration")
 
 	starttime := time.Now()
@@ -176,15 +174,7 @@ func main() {
 	tlsServerConfig.MinVersion = tls.VersionTLS12
 
 	// ********************************************************************************
-	log.FromContext(ctx).Infof("executing phase 3: creating icmp server ipam")
-	// ********************************************************************************
-
-	ipamChain := getIPAMChain(config.CidrPrefix)
-
-	log.FromContext(ctx).Infof("network prefixes parsed successfully")
-
-	// ********************************************************************************
-	log.FromContext(ctx).Infof("executing phase 4: create icmp-server network service endpoint")
+	log.FromContext(ctx).Infof("executing phase 3: create icmp-server network service endpoint")
 	// ********************************************************************************
 	vppConn, vppErrCh := vpphelper.StartAndDialContext(ctx)
 	exitOnErr(ctx, cancel, vppErrCh)
@@ -194,7 +184,7 @@ func main() {
 		endpoint.WithName(config.Name),
 		endpoint.WithAuthorizeServer(authorize.NewServer()),
 		endpoint.WithAdditionalFunctionality(
-			ipamChain,
+			groupipam.NewServer(config.CidrPrefix),
 			mechanisms.NewServer(map[string]networkservice.NetworkServiceServer{
 				memif.MECHANISM: chain.NewNetworkServiceServer(
 					sendfd.NewServer(),
@@ -207,7 +197,7 @@ func main() {
 		),
 	)
 	// ********************************************************************************
-	log.FromContext(ctx).Infof("executing phase 5: create grpc server and register icmp-server")
+	log.FromContext(ctx).Infof("executing phase 4: create grpc server and register icmp-server")
 	// ********************************************************************************
 	options := append(
 		tracing.WithTracing(),
@@ -232,7 +222,7 @@ func main() {
 	log.FromContext(ctx).Infof("grpc server started")
 
 	// ********************************************************************************
-	log.FromContext(ctx).Infof("executing phase 6: register nse with nsm")
+	log.FromContext(ctx).Infof("executing phase 5: register nse with nsm")
 	// ********************************************************************************
 	clientOptions := append(
 		tracing.WithTracingDial(),
@@ -323,12 +313,4 @@ func notifyContext() (context.Context, context.CancelFunc) {
 		syscall.SIGTERM,
 		syscall.SIGQUIT,
 	)
-}
-
-func getIPAMChain(cIDRGroups [][]*net.IPNet) networkservice.NetworkServiceServer {
-	var ipamchain []networkservice.NetworkServiceServer
-	for _, cidrGroup := range cIDRGroups {
-		ipamchain = append(ipamchain, point2pointipam.NewServer(cidrGroup...))
-	}
-	return chain.NewNetworkServiceServer(ipamchain...)
 }
