@@ -1,5 +1,7 @@
 // Copyright (c) 2021-2022 Doc.ai and/or its affiliates.
 //
+// Copyright (c) 2023 Cisco and/or its affiliates.
+//
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,7 +24,6 @@ package main
 import (
 	"context"
 	"crypto/tls"
-	"io/ioutil"
 	"net"
 	"net/url"
 	"os"
@@ -220,7 +221,7 @@ func main() {
 	server := grpc.NewServer(options...)
 	responderEndpoint.Register(server)
 
-	tmpDir, err := ioutil.TempDir("", config.Name)
+	tmpDir, err := os.MkdirTemp("", config.Name)
 	if err != nil {
 		logrus.Fatalf("error creating tmpDir %+v", err)
 	}
