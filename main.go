@@ -34,8 +34,8 @@ import (
 
 	nested "github.com/antonfisher/nested-logrus-formatter"
 	"github.com/edwarnicke/grpcfd"
-	"github.com/networkservicemesh/vpphelper"
 	"github.com/kelseyhightower/envconfig"
+	"github.com/networkservicemesh/vpphelper"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spiffe/go-spiffe/v2/spiffetls/tlsconfig"
