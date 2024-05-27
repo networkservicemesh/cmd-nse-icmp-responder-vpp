@@ -26,6 +26,7 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"net"
 	"net/url"
 	"os"
 	"os/signal"
@@ -57,6 +58,8 @@ import (
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/mechanisms/sendfd"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/core/chain"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/ipam/groupipam"
+	"github.com/networkservicemesh/sdk/pkg/networkservice/ipam/point2pointipam"
+	"github.com/networkservicemesh/sdk/pkg/networkservice/ipam/strictipam"
 	registryclient "github.com/networkservicemesh/sdk/pkg/registry/chains/client"
 	registryauthorize "github.com/networkservicemesh/sdk/pkg/registry/common/authorize"
 	"github.com/networkservicemesh/sdk/pkg/registry/common/clientinfo"
@@ -189,7 +192,9 @@ func main() {
 		endpoint.WithName(config.Name),
 		endpoint.WithAuthorizeServer(authorize.NewServer()),
 		endpoint.WithAdditionalFunctionality(
-			groupipam.NewServer(config.CidrPrefix),
+			groupipam.NewServer(config.CidrPrefix, groupipam.WithCustomIPAMServer(func(prefixes ...*net.IPNet) networkservice.NetworkServiceServer {
+				return strictipam.NewServer(point2pointipam.NewServer, prefixes...)
+			})),
 			mechanisms.NewServer(map[string]networkservice.NetworkServiceServer{
 				memif.MECHANISM: chain.NewNetworkServiceServer(
 					sendfd.NewServer(),
